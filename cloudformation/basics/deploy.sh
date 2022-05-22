@@ -1,0 +1,1 @@
+aws cloudformation create-stack  --stack-name firstVPC --region us-east-1 --template-body file://testcfn.yml
