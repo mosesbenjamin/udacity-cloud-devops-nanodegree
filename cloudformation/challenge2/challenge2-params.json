@@ -1,7 +1,7 @@
 [
     {
         "ParameterKey": "EnvironmentName",
-        "ParameterValue": "Challenge1"
+        "ParameterValue": "Challenge2"
     },
     {
         "ParameterKey": "VpcCIDR",
