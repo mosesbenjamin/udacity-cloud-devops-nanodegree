@@ -1,19 +1,32 @@
 version: 2.1
 
+commands:
+  # Rollback
+  destroy_environment:
+    steps:
+      - run:
+          name: Destroy environment
+          # ${CIRCLE_WORKFLOW_ID} is a Built-in environment variable 
+          # ${CIRCLE_WORKFLOW_ID:0:5} takes the first 5 chars of the variable CIRCLE_CI_WORKFLOW_ID 
+          when: on_fail
+          command: |
+            aws cloudformation delete-stack --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5}
+
 jobs:
-  # # Infrastructure creation
-  # create_infrastructure: 
-  #     docker:
-  #       - image: amazon/aws-cli
-  #     steps:
-  #       - checkout
-  #       - run:
-  #           name: Create Cloudformation Stack
-  #           command: |
-  #             aws cloudformation deploy \
-  #               --template-file cicd-monitoring-logging/ansible/template.yml \
-  #               --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5} \
-  #               --region us-east-1
+  # Infrastructure creation
+  create_infrastructure: 
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Create Cloudformation Stack
+          command: |
+            aws cloudformation deploy \
+              --template-file cicd-monitoring-logging/ansible/template.yml \
+              --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5} \
+              --region us-east-1
+      - destroy_environment
 
   # Config and deployment
   configure_infrastructure: 
@@ -33,8 +46,27 @@ jobs:
           command: |
             ansible-playbook -i cicd-monitoring-logging/ansible/inventory cicd-monitoring-logging/ansible/main-remote.yml
 
+  # Smoke Testing
+  smoke_test:
+    docker:
+      - image: alpine:latest
+    steps:
+      - run: apk add --update curl
+      - run:
+          name: smoke test
+          command: |
+            URL="https://blog.udacity.com/"
+            # Test if website exists
+            if curl -s --head ${URL} 
+            then
+              return 0
+            else
+              return 1
+            fi
+      - destroy_environment    
+        
 workflows:
   my_workflow:
       jobs:
-        # - create_infrastructure
+        - create_infrastructure
         - configure_infrastructure
