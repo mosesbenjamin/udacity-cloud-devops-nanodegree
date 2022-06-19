@@ -1,20 +1,40 @@
 version: 2.1
 
 jobs:
-  create_infrastructure: 
-      docker:
-        - image: amazon/aws-cli
-      steps:
-        - checkout
-        - run:
-            name: Create Cloudformation Stack
-            command: |
-              aws cloudformation deploy \
-                --template-file cicd-monitoring-logging/ansible/template.yml \
-                --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5} \
-                --region us-east-1
+  # # Infrastructure creation
+  # create_infrastructure: 
+  #     docker:
+  #       - image: amazon/aws-cli
+  #     steps:
+  #       - checkout
+  #       - run:
+  #           name: Create Cloudformation Stack
+  #           command: |
+  #             aws cloudformation deploy \
+  #               --template-file cicd-monitoring-logging/ansible/template.yml \
+  #               --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5} \
+  #               --region us-east-1
+
+  # Config and deployment
+  configure_infrastructure: 
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: ["61:ba:5c:16:9c:47:51:58:c4:a5:36:9e:01:92:23:1a"]
+      - run:
+          name: Install Ansible
+          command: |
+            # install the dependencies needed for your playbook
+            apk add --update ansible 
+      - run:
+          name: Run Playbook and Configure server
+          command: |
+            ansible-playbook -i cicd-monitoring-logging/ansible/inventory cicd-monitoring-logging/ansible/main-remote.yml
 
 workflows:
   my_workflow:
       jobs:
-        - create_infrastructure
+        # - create_infrastructure
+        - configure_infrastructure
